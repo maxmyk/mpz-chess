@@ -26,6 +26,8 @@ function App() {
     <div className="App">
       <header className="App-header">
         <h1>Really cool multiplayer chess</h1>
+        <div>Send this link to your friend:</div>
+        <a href={window.location.href}>{window.location.href}#your_unique_id</a>
         <div style={boardsContainer}>
           <WithMoveValidation />
         </div>
