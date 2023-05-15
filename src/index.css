@@ -11,3 +11,40 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+#menu {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+#root, #stats{
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+body {
+  height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html{
+  background-color: #282c34;
+  color: #fff;
+}
+
+a{
+  text-decoration: none;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+#mainmenu h1{
+  font-size: 5em;
+}

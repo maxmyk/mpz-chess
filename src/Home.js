@@ -1,8 +1,8 @@
 const Home = () => {
   return (
-    <div>
-      <h1>Welcome to the Home page</h1>
-      <div>
+    <div id="#mainmenu">
+      <h1>Welcome to the Home page!</h1>
+      <div id="menu">
         <a href="/statistic">User statistic</a>
         <br/>
         <a href="/game">Game</a>
