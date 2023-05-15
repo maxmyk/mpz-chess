@@ -12,11 +12,15 @@ code {
     monospace;
 }
 
-#menu {
+.container, .links {
   align-items: center;
   display: flex;
   justify-content: center;
   flex-direction: column;
+}
+
+.links a{
+  margin-bottom: 3%;
 }
 
 #root, #stats{
