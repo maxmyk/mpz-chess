@@ -10,7 +10,8 @@ ReactDOM.render(
   <React.StrictMode>
     <Router>
       <Routes>
-        <Route exact path="/game" element={<App />} />
+        <Route exact path="/game_multiplayer" element={<App />} />
+        <Route exact path="/game_bot" element={<App />} />
         <Route path="/" element={<Home />} />
         <Route path="/statistic" element={<Statistic />} />
         <Route element={<h1>404 - Not Found</h1>} />

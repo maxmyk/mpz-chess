@@ -1,13 +1,13 @@
 const Home = () => {
   return (
-    <div id="#mainmenu">
-      <h1>Welcome to the Home page!</h1>
-      <div id="menu">
-        <a href="/statistic">User statistic</a>
-        <br/>
-        <a href="/game">Game</a>
+    <div class="container">
+    <h1>Welcome to the Home page</h1>
+    <div class="links">
+      <a href="/statistic">User statistic</a>
+      <a href="/game_bot">Game with bot</a>
+      <a href="/game_multiplayer">Game with players</a>
     </div>
-    </div>
+  </div>
     
   );
 };
