@@ -1,27 +1,16 @@
 import './App.css';
-// import React, { Component } from "react";
-// import Chessboard from "chessboardjsx";
+import React from "react";
 import WithMoveValidation from "./integrations/validator";
+import io from "socket.io-client"
+import { useEffect } from "react";
+const socket = io("http://localhost:3001")
 
-// import StockFish from "./integrations/Stockfish.js";
-// const Chess = require('chess.js');
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <h1>Really cool multiplayer chess</h1>
-//         <div style={boardsContainer}>
-//           <WithMoveValidation />
-//         </div>
-//       </header>
-//     </div>
-//   );
-// }
-
-
-// function App() rewritten to have two buttons. if the first button is clicked, then the first board is shown. if the second button is clicked, then the second board is shown.
 function App() {
+  useEffect(() => {
+    socket.on("receive_move", (msg) => {
+      alert(msg.message);
+    })
+  }, [socket]);
   return (
     <div className="App">
       <header className="App-header">
@@ -35,8 +24,6 @@ function App() {
     </div>
   );
 }
-
-
 
 export default App;
 

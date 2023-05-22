@@ -1,17 +1,12 @@
-import io from 'socket.io-client'
-
-const URL = 'http://localhost:8000'
-
-const socket = io(URL)
-
-var mySocketId
-
-socket.on("createNewGame", statusUpdate => {
-    console.log("A new game has been created! Username: " + statusUpdate.userName + ", Game id: " + statusUpdate.gameId + " Socket id: " + statusUpdate.mySocketId)
-    mySocketId = statusUpdate.mySocketId
-})
-
-export {
-    socket,
-    mySocketId
-}
+import React, { createContext } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { useEffect } from "react";
+const socket = io("http://localhost:3001")
+SocketContext = createContext<Socket>(socket);
+socket.on('connect', () => console.log('connected to socket'));
+const SocketProvider = ({ children }) => {
+  return (
+    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
+  );
+};
+export { SocketContext, SocketProvider };

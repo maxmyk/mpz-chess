@@ -18,6 +18,9 @@ class HumanVsHuman extends Component {
     this.game = new Chess();
   }
   componentDidUpdate(prevProps, prevState) {
+  //   const sendData = (data) => {
+  //     socket.emit("send_move", { message: data})
+  //  }
     if (this.game.in_checkmate()) {
       this.setState(({ pieceSquare, history }) => ({
         fen: "start",
@@ -25,8 +28,14 @@ class HumanVsHuman extends Component {
         squareStyles: squareStyling({ pieceSquare, history })
       }));
       this.game.reset();
-      let winner = this.game.turn() === "w" ? "white" : "black";
-      alert("Game over, " + winner + this.game.winner + " wins!");
+      let fen = this.state.fen;
+      let winner = fen.split(" ")[1];
+      if (winner === "w") {
+        winner = "Black";
+      } else {
+        winner = "White";
+      }
+      alert("Game over, " + winner + " wins!");
     }
     if (this.game.in_draw()) {
       this.setState(({ pieceSquare, history }) => ({
@@ -187,7 +196,7 @@ export default function WithMoveValidation() {
           />
         )}
       </HumanVsHuman>
-      
+
     </div>
   );
 }
