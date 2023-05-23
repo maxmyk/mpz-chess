@@ -1,14 +1,18 @@
-import React, { Component } from "react";
+import React, { Component, useState } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
+import { useNavigate } from "react-router-dom";
 const socket = require('../integrations/socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
 var player = "black";
 
 class HumanVsHuman extends Component {
-  static propTypes = { children: PropTypes.func };
+  static propTypes = {
+    children: PropTypes.func,
+    room_id: PropTypes.string.isRequired
+  };
 
   state = {
     fen: "start",
@@ -21,11 +25,19 @@ class HumanVsHuman extends Component {
 
   componentDidMount() {
     // Check ig this.game does not exist
-    if (!this.game)
-        this.game = new Chess();
+    if (!this.game) {
+      this.game = new Chess();
+      socket.emit("join_room", this.props.room_id);
+      socket.on("room_full", (data) => {
+        // Redirect to home page
+        alert("Room is full. Redirecting to home page.");
+        window.location.href = "/"; // Use window.location.href to redirect
+      });
+    }    
     socket.on("receive_move", (data) => {
       this.setChessState(data);
     });
+    // alert("You are playing as " + player + "and your room id is " + this.props.room_id + ".");
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -33,7 +45,8 @@ class HumanVsHuman extends Component {
 
     if (fen !== "start" && fen !== prevFEN) {
       this.setState({ prevFEN: fen });
-      socket.emit("send_move", { currentState: this.state });
+      alert("You are playing as " + player + "and your room id is " + this.props.room_id + ".");
+      socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
     }
 
     if (history.length !== prevState.history.length) {
@@ -183,10 +196,10 @@ const squareStyling = ({ pieceSquare, history }) => {
   };
 };
 
-export default function WithMoveValidation() {
+export default function WithMoveValidation({ room_id }) {
   return (
     <div>
-      <HumanVsHuman>
+      <HumanVsHuman room_id={room_id}>
         {({
           position,
           onDrop,
