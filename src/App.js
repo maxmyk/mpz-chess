@@ -1,14 +1,15 @@
 import './App.css';
-import React, { useEffect } from "react";
+// import React, { useEffect } from "react";
+import React from "react";
 import WithMoveValidation from "./integrations/validator";
-const socket = require('./integrations/socket').socket
+// const socket = require('./integrations/socket').socket
 
 function App() {
-  useEffect(() => {
-    socket.on("receive_move", (data) => {
-      alert(data)
-    });
-  }, [socket]);
+  // useEffect(() => {
+  //   socket.on("receive_move", (data) => {
+  //     alert(data)
+  //   });
+  // }, [socket]);
 
   return (
     <div className="App">
