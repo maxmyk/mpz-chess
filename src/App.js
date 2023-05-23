@@ -1,16 +1,15 @@
 import './App.css';
-import React from "react";
+import React, { useEffect } from "react";
 import WithMoveValidation from "./integrations/validator";
-import io from "socket.io-client"
-import { useEffect } from "react";
-const socket = io("http://localhost:3001")
+const socket = require('./integrations/socket').socket
 
 function App() {
   useEffect(() => {
-    socket.on("receive_move", (msg) => {
-      alert(msg.message);
-    })
+    socket.on("receive_move", (data) => {
+      alert(data)
+    });
   }, [socket]);
+
   return (
     <div className="App">
       <header className="App-header">

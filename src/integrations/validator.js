@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
+const socket = require('../integrations/socket').socket
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
 class HumanVsHuman extends Component {
@@ -12,21 +13,30 @@ class HumanVsHuman extends Component {
     squareStyles: {},
     pieceSquare: "",
     square: "",
-    history: []
+    history: [],
+    prevFEN: ""
   };
+
   componentDidMount() {
     this.game = new Chess();
   }
-  componentDidUpdate(prevProps, prevState) {
-  //   const sendData = (data) => {
-  //     socket.emit("send_move", { message: data})
-  //  }
+  componentDidUpdate() {
+    const sendData = (data) => {
+      socket.emit("join_room", "1")
+      socket.emit("send_move", { currentState: this.state })
+    }
+    if (this.state.fen !== "start" && this.state.fen !== this.state.prevFEN) {
+      alert(this.state.fen)
+      this.setState({ prevFEN: this.state.fen })
+      sendData(this.state.fen)
+    }
     if (this.game.in_checkmate()) {
       this.setState(({ pieceSquare, history }) => ({
         fen: "start",
         history: this.game.history({ verbose: true }),
         squareStyles: squareStyling({ pieceSquare, history })
       }));
+      sendData(this.state.fen)
       this.game.reset();
       let fen = this.state.fen;
       let winner = fen.split(" ")[1];

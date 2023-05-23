@@ -2,7 +2,10 @@ import React from "react";
 import io from "socket.io-client";
 import { useState } from "react";
 
-const socket = io.connect("http://10.10.241.217:3001");
+// export NODE_OPTIONS=--openssl-legacy-provider
+// Fixes ERR_OSSL_EVP_UNSUPPORTED
+
+const socket = io.connect("http://10.10.241.46:3001");
 
 const Statistic = () => {
   const sendMessage = () => {
