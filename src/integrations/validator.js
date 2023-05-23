@@ -1,12 +1,10 @@
-import React, { Component, useState } from "react";
+import React, { Component, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
 import { useNavigate } from "react-router-dom";
 const socket = require('../integrations/socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
-
-var player = "black";
 
 class HumanVsHuman extends Component {
   static propTypes = {
@@ -20,24 +18,28 @@ class HumanVsHuman extends Component {
     squareStyles: {},
     pieceSquare: "",
     history: [],
-    prevFEN: ""
+    prevFEN: "",
+    player: ""
   };
 
   componentDidMount() {
-    // Check ig this.game does not exist
+    const { room_id } = this.props;
     if (!this.game) {
       this.game = new Chess();
-      socket.emit("join_room", this.props.room_id);
+      socket.emit("join_room", room_id);
       socket.on("room_full", (data) => {
-        // Redirect to home page
         alert("Room is full. Redirecting to home page.");
-        window.location.href = "/"; // Use window.location.href to redirect
+        window.location.href = "/";
       });
-    }    
+    }
+
     socket.on("receive_move", (data) => {
       this.setChessState(data);
     });
-    // alert("You are playing as " + player + "and your room id is " + this.props.room_id + ".");
+
+    socket.on("receive_side", (data) => {
+      this.setPlayer(data.message);
+    });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -45,22 +47,23 @@ class HumanVsHuman extends Component {
 
     if (fen !== "start" && fen !== prevFEN) {
       this.setState({ prevFEN: fen });
-      alert("You are playing as " + player + "and your room id is " + this.props.room_id + ".");
       socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
     }
 
-    if (history.length !== prevState.history.length) {
-      const lastMove = history[history.length - 1];
-      if (this.game.in_checkmate()) {
-        this.game.reset();
-        let winner = lastMove.color === "w" ? "Black" : "White";
-        alert("Game over, " + winner + " wins!");
-      } else if (this.game.in_draw()) {
-        this.game.reset();
-        alert("Game over, DRAW!");
-      }
+    const lastMove = history[history.length - 1];
+    if (this.game.in_checkmate()) {
+      this.game.reset();
+      let winner = lastMove.color === "b" ? "Black" : "White";
+      alert("Game over, " + winner + " wins!");
+    } else if (this.game.in_draw()) {
+      this.game.reset();
+      alert("Game over, DRAW!");
     }
   }
+
+  setPlayer = (player) => {
+    this.setState({ player });
+  };
 
   setChessState = (data) => {
     const { fen, prevFEN, history } = this.state;
@@ -73,19 +76,27 @@ class HumanVsHuman extends Component {
   };
 
   onDrop = ({ sourceSquare, targetSquare }) => {
-    const move = this.game.move({
-      from: sourceSquare,
-      to: targetSquare,
-      promotion: "q"
-    });
+    const { player } = this.state;
+    const piece = this.game.get(sourceSquare);
+    const myPlayer = player === "white" ? "w" : "b";
+    if (piece && piece.color !== myPlayer) {
+      return;
+    }
+    else {
+      const move = this.game.move({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: "q"
+      });
 
-    if (move === null) return;
+      if (move === null) return;
 
-    this.setState(({ pieceSquare, history }) => ({
-      fen: this.game.fen(),
-      history: this.game.history({ verbose: true }),
-      squareStyles: squareStyling({ pieceSquare, history })
-    }));
+      this.setState(({ pieceSquare, history }) => ({
+        fen: this.game.fen(),
+        history: this.game.history({ verbose: true }),
+        squareStyles: squareStyling({ pieceSquare, history })
+      }));
+    }
   };
 
   onMouseOverSquare = square => {
@@ -122,32 +133,33 @@ class HumanVsHuman extends Component {
   };
 
   onSquareClick = square => {
-    this.setState(({ pieceSquare, history }) => {
-      const piece = this.game.get(square);
+    const { player, pieceSquare, history } = this.state;
+    const piece = this.game.get(square);
+    const myPlayer = player === "white" ? "w" : "b";
+    if (piece && piece.color !== myPlayer) {
+      return;
+    }
+    if (pieceSquare) {
+      const move = this.game.move({
+        from: pieceSquare,
+        to: square,
+        promotion: "q"
+      });
 
-      if (piece && piece.color === this.game.turn()) {
-        return {
-          squareStyles: squareStyling({ pieceSquare: square, history }),
-          pieceSquare: square
-        };
-      } else if (pieceSquare) {
-        const move = this.game.move({
-          from: pieceSquare,
-          to: square,
-          promotion: "q"
-        });
+      if (move === null) return;
 
-        if (move === null) return {};
-
-        return {
-          fen: this.game.fen(),
-          history: this.game.history({ verbose: true }),
-          pieceSquare: ""
-        };
-      }
-
-      return {};
-    });
+      this.setState(prevState => ({
+        fen: this.game.fen(),
+        history: this.game.history({ verbose: true }),
+        pieceSquare: "",
+        squareStyles: squareStyling({ pieceSquare: "", history: prevState.history })
+      }));
+    } else {
+      this.setState({
+        pieceSquare: square,
+        squareStyles: squareStyling({ pieceSquare: square, history })
+      });
+    }
   };
 
   onSquareRightClick = square => {
@@ -163,8 +175,9 @@ class HumanVsHuman extends Component {
   };
 
   render() {
-    const { fen, dropSquareStyle, squareStyles } = this.state;
-    return this.props.children({
+    const { fen, dropSquareStyle, squareStyles, player } = this.state;
+    const { children } = this.props;
+    return children({
       squareStyles,
       position: fen,
       onMouseOverSquare: this.onMouseOverSquare,
@@ -172,7 +185,8 @@ class HumanVsHuman extends Component {
       onDrop: this.onDrop,
       dropSquareStyle,
       onSquareClick: this.onSquareClick,
-      onSquareRightClick: this.onSquareRightClick
+      onSquareRightClick: this.onSquareRightClick,
+      player
     });
   }
 }
@@ -197,6 +211,14 @@ const squareStyling = ({ pieceSquare, history }) => {
 };
 
 export default function WithMoveValidation({ room_id }) {
+  const [player, setPlayer] = useState("white");
+
+  useEffect(() => {
+    socket.on("receive_side", (data) => {
+      setPlayer(data.message);
+    });
+  }, []);
+
   return (
     <div>
       <HumanVsHuman room_id={room_id}>
@@ -208,7 +230,8 @@ export default function WithMoveValidation({ room_id }) {
           squareStyles,
           dropSquareStyle,
           onSquareClick,
-          onSquareRightClick
+          onSquareRightClick,
+          player
         }) => (
           <Chessboard
             id="humanVsHuman"
@@ -225,7 +248,7 @@ export default function WithMoveValidation({ room_id }) {
             dropSquareStyle={dropSquareStyle}
             onSquareClick={onSquareClick}
             onSquareRightClick={onSquareRightClick}
-            orientation={player} // Change this
+            orientation={player}
           />
         )}
       </HumanVsHuman>
