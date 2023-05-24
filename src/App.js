@@ -1,46 +1,42 @@
 import './App.css';
-import React from "react";
-import WithMoveValidation from "./integrations/validator";
-import { Route, Routes, useParams, Navigate } from "react-router-dom";
+// import React, { Component } from "react";
+// import Chessboard from "chessboardjsx";
+import WithMoveValidation from "./integrations/bot_game";
 
-const GameMultiplayer = () => {
-  let { room_id } = useParams();
+// import StockFish from "./integrations/Stockfish.js";
+// const Chess = require('chess.js');
 
-  // Generate a random room number if room_id is not present
-  if (!room_id) {
-    room_id = Math.floor(Math.random() * 1000000).toString();
-    return <Navigate to={`/game_multiplayer/${room_id}`} />;
-  }
-
-  // Use the room_id value in your component logic
-
-  return (
-    <div>
-      <h1>Multiplayer Game</h1>
-      <p>Room ID: {room_id}</p>
-      {/* Render the rest of your multiplayer game */}
-    </div>
-  );
-};
+// function App() {
+//   return (
+//     <div className="App">
+//       <header className="App-header">
+//         <h1>Really cool multiplayer chess</h1>
+//         <div style={boardsContainer}>
+//           <WithMoveValidation />
+//         </div>
+//       </header>
+//     </div>
+//   );
+// }
 
 
+// function App() rewritten to have two buttons. if the first button is clicked, then the first board is shown. if the second button is clicked, then the second board is shown.
 function App() {
-
   return (
-    <header className="App-header">
-      <Routes>
-        <Route exact path="/game_multiplayer" component={GameMultiplayer} />
-        <Route path="/game_multiplayer/:room_id" component={GameMultiplayer} />
+    <div className="App">
+      <header className="App-header">
         <h1>Really cool multiplayer chess</h1>
         <div>Send this link to your friend:</div>
         <a href={window.location.href}>{window.location.href}#your_unique_id</a>
         <div style={boardsContainer}>
           <WithMoveValidation />
         </div>
-      </Routes>
-    </header>
+      </header>
+    </div>
   );
 }
+
+
 
 export default App;
 
@@ -53,4 +49,3 @@ const boardsContainer = {
   marginTop: 30,
   marginBottom: 50
 };
-
