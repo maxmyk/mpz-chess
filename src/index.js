@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
+import BotGame from './GameBot';
 import Home from './Home';
 import GameMultiplayer from './GameMultiplayer';
 import Statistic from './Statistic';
@@ -22,7 +22,7 @@ ReactDOM.render(
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/game_bot" element={<App />} />
+        <Route path="/game_bot" element={<BotGame />} />
         <Route path="/game_multiplayer/*" element={<GameMultiplayer />} />
         <Route path="/statistic" element={<Statistic />} />
         <Route path="*" element={<Navigate to="/" />} />
