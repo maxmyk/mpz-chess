@@ -1,5 +1,5 @@
 import './App.css';
-// import React, { Component } from "react";
+import React, { Component } from "react";
 // import Chessboard from "chessboardjsx";
 import WithMoveValidation from "./integrations/bot_game";
 
