@@ -1,48 +1,23 @@
-import React from "react";
-import io from "socket.io-client";
-import { useState } from "react";
-
 // export NODE_OPTIONS=--openssl-legacy-provider
 // Fixes ERR_OSSL_EVP_UNSUPPORTED
+import React, { useState, useEffect } from "react";
 
-const socket = io.connect("http://10.10.241.46:3001");
+const socket = require("./integrations/socket").socket;
 
 const Statistic = () => {
-  const sendMessage = () => {
-    socket.emit("send_message", { message });
-  };
+  const [statistic, setStatistic] = useState("Statistic, getting data...");
 
-  const [room, setRoom] = useState("");
+  useEffect(() => {
+    socket.emit("get_statistic");
+    socket.on("receive_statistic", (data) => {
+      setStatistic(data);
+    });
+    return () => {
+      socket.off("receive_statistic");
+    };
+  }, []);
 
-  const [message, setMessage] = useState("");
-  // const [messageReceived, setMessageReceived] = useState("");
-
-  const joinRoom = () => {
-    if (room !== "") {
-      socket.emit("join_room", room);
-    }
-  };
-
-  return (
-    <div>
-      <input
-        placeholder="Room Number..."
-        onChange={(event) => {
-          setRoom(event.target.value);
-        }}
-      />
-      <button onClick={joinRoom}> Join Room</button>
-      <div>
-        <input
-          placeholder="Message..."
-          onChange={(event) => {
-            setMessage(event.target.value);
-          }}
-        />
-        <button onClick={sendMessage}> Send Message</button>
-      </div>
-    </div>
-  );
+  return <div>{statistic}</div>;
 };
 
 export default Statistic;

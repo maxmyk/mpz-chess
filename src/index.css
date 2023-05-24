@@ -137,5 +137,5 @@ a{
 }
 
 .boardsContainer > div{
-  width: fill-available;
+  width: stretch;
 }

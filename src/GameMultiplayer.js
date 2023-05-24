@@ -2,7 +2,6 @@ import "./App.css";
 import React, { useEffect, useState } from "react";
 import WithMoveValidation from "./integrations/validator";
 import { useLocation, useNavigate } from "react-router-dom";
-const socket = require("./integrations/socket").socket;
 
 const GameMultiplayer = () => {
   const location = useLocation();
@@ -37,7 +36,6 @@ const GameMultiplayer = () => {
       <div class="boardsContainer">
         <WithMoveValidation room_id={room_id} />
       </div>
-      <a href="/">Back to home</a>
     </div>
   );
 };
