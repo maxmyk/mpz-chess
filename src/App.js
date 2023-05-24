@@ -1,7 +1,7 @@
 import './App.css';
 import React from "react";
 import WithMoveValidation from "./integrations/validator";
-import { BrowserRouter as Router, Route, Routes, useParams, Navigate } from "react-router-dom";
+import { Route, Routes, useParams, Navigate } from "react-router-dom";
 
 const GameMultiplayer = () => {
   let { room_id } = useParams();

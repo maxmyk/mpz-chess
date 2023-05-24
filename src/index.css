@@ -66,8 +66,76 @@ a{
   display: flex;
   flex-wrap: nowrap;
   align-content: center;
-  justify-content: center;
+  justify-content: space-evenly;
   align-items: center;
   flex-direction: column;
   height: 100vh;
+}
+
+.centred_pvp{
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.centred{
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  align-items: center;
+}
+
+/* .centred_pvp: */
+
+.half {
+  margin: 3%;
+  padding: 0.5%;
+  border-radius: 5px;
+}
+
+.chatbox{
+  overflow: auto;
+  height: 500px;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */ 
+  scroll-snap-type: y proximity;
+  overflow-y: scroll;
+  overscroll-behavior-y: contain;
+  scroll-snap-type: y proximity;
+}
+
+.chatbox::-webkit-scrollbar {
+  display: none;
+}
+
+.chatbox > div > div:last-child {
+  scroll-snap-align: end;
+}
+
+.chatbox > div > div {
+  background: lightgray;
+  height: 3rem;
+  font-size: 1.5rem;
+}
+.chatbox > div > div:nth-child(2n) {
+  background: gray;
+}
+
+.boardsContainer{
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100vw;
+  margin-top: 30;
+  margin-top: 50;
+}
+
+.boardsContainer > div{
+  width: fill-available;
 }

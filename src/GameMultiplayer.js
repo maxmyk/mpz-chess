@@ -29,10 +29,12 @@ const GameMultiplayer = () => {
 
   return (
     <div id="really_cool_div">
-      <h1>Really cool multiplayer chess</h1>
-      <div>Send this link to your friend:</div>
-      <a href={window.location.href}>{window.location.href}</a>
-      <div style={boardsContainer}>
+      <div class="centred">
+        <h1>Really cool multiplayer chess</h1>
+        <div>Send this link to your friend:</div>
+        <a href={window.location.href}>{window.location.href}</a>
+      </div>
+      <div class="boardsContainer">
         <WithMoveValidation room_id={room_id} />
       </div>
       <a href="/">Back to home</a>
@@ -40,14 +42,5 @@ const GameMultiplayer = () => {
   );
 };
 
-const boardsContainer = {
-  display: "flex",
-  justifyContent: "space-around",
-  alignItems: "center",
-  flexWrap: "wrap",
-  width: "100vw",
-  marginTop: 30,
-  marginBottom: 50,
-};
 
 export default GameMultiplayer;

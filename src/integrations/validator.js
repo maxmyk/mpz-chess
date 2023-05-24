@@ -2,13 +2,11 @@ import React, { Component, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
-import { useNavigate } from "react-router-dom";
 const socket = require('../integrations/socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
 class HumanVsHuman extends Component {
   static propTypes = {
-    children: PropTypes.func,
     room_id: PropTypes.string.isRequired
   };
 
@@ -19,7 +17,10 @@ class HumanVsHuman extends Component {
     pieceSquare: "",
     history: [],
     prevFEN: "",
-    player: ""
+    player: "",
+    chatMessages: [],
+    newMessage: "",
+    // localBool: true
   };
 
   componentDidMount() {
@@ -40,11 +41,20 @@ class HumanVsHuman extends Component {
     socket.on("receive_side", (data) => {
       this.setPlayer(data.message);
     });
+
+    socket.on("receive_message", (data) => {
+      const { player, message } = data;
+      this.addChatMessage(`${player}: ${message}`);
+    });
   }
 
   componentDidUpdate(prevProps, prevState) {
     const { fen, prevFEN, history } = this.state;
 
+    // if (this.state.localBool) {
+    //   socket.emit("get_move", { room: this.props.room_id });
+    //   this.setState({ localBool: false });
+    // }
     if (fen !== "start" && fen !== prevFEN) {
       this.setState({ prevFEN: fen });
       socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
@@ -66,7 +76,6 @@ class HumanVsHuman extends Component {
   };
 
   setChessState = (data) => {
-    const { fen, prevFEN, history } = this.state;
     this.setState({
       fen: data.currentState.fen,
       history: data.currentState.history,
@@ -81,8 +90,7 @@ class HumanVsHuman extends Component {
     const myPlayer = player === "white" ? "w" : "b";
     if (piece && piece.color !== myPlayer) {
       return;
-    }
-    else {
+    } else {
       const move = this.game.move({
         from: sourceSquare,
         to: targetSquare,
@@ -174,20 +182,66 @@ class HumanVsHuman extends Component {
     }
   };
 
+  handleInputChange = event => {
+    this.setState({ newMessage: event.target.value });
+  };
+
+  handleSendMessage = event => {
+    event.preventDefault();
+    const { player, newMessage } = this.state;
+    const { room_id } = this.props;
+    const message = {
+      player: player,
+      message: newMessage
+    };
+    // if stripped message is empty, don't send
+    if (!newMessage.replace(/\s/g, "").length) {
+      return;
+    }
+    this.addChatMessage(`${player}: ${newMessage}`);
+    socket.emit("send_message", { room:room_id, message });
+    this.setState({ newMessage: "" });
+  };
+
+  addChatMessage = message => {
+    this.setState(prevState => ({
+      chatMessages: [...prevState.chatMessages, message]
+    }));
+  };
+
   render() {
-    const { fen, dropSquareStyle, squareStyles, player } = this.state;
-    const { children } = this.props;
-    return children({
-      squareStyles,
-      position: fen,
-      onMouseOverSquare: this.onMouseOverSquare,
-      onMouseOutSquare: this.onMouseOutSquare,
-      onDrop: this.onDrop,
-      dropSquareStyle,
-      onSquareClick: this.onSquareClick,
-      onSquareRightClick: this.onSquareRightClick,
-      player
-    });
+    const { fen, dropSquareStyle, squareStyles, player, chatMessages, newMessage } = this.state;
+    return (
+      <div class="centred_pvp">
+        <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black" , color : player === "black"  ? "white" : "black" }}>
+          <div class="chatbox">
+            {chatMessages.map((message, index) => (
+              <p key={index}>{message}</p>
+            ))}
+          </div>
+          <form onSubmit={this.handleSendMessage}>
+          <input type="text" value={newMessage} onChange={this.handleInputChange} />
+          <button type="submit">Send</button>
+        </form>
+        </div>
+        <Chessboard
+          width={600}
+          position={fen}
+          onDrop={this.onDrop}
+          onMouseOverSquare={this.onMouseOverSquare}
+          onMouseOutSquare={this.onMouseOutSquare}
+          boardStyle={{
+            borderRadius: "5px",
+            boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`
+          }}
+          squareStyles={squareStyles}
+          dropSquareStyle={dropSquareStyle}
+          onSquareClick={this.onSquareClick}
+          onSquareRightClick={this.onSquareRightClick}
+          orientation={player}
+        />
+      </div>
+    );
   }
 }
 
@@ -221,37 +275,7 @@ export default function WithMoveValidation({ room_id }) {
 
   return (
     <div>
-      <HumanVsHuman room_id={room_id}>
-        {({
-          position,
-          onDrop,
-          onMouseOverSquare,
-          onMouseOutSquare,
-          squareStyles,
-          dropSquareStyle,
-          onSquareClick,
-          onSquareRightClick,
-          player
-        }) => (
-          <Chessboard
-            id="humanVsHuman"
-            width={600}
-            position={position}
-            onDrop={onDrop}
-            onMouseOverSquare={onMouseOverSquare}
-            onMouseOutSquare={onMouseOutSquare}
-            boardStyle={{
-              borderRadius: "5px",
-              boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`
-            }}
-            squareStyles={squareStyles}
-            dropSquareStyle={dropSquareStyle}
-            onSquareClick={onSquareClick}
-            onSquareRightClick={onSquareRightClick}
-            orientation={player}
-          />
-        )}
-      </HumanVsHuman>
+      <HumanVsHuman room_id={room_id} />
     </div>
   );
 }
