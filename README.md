@@ -2,7 +2,7 @@
 
 ### :exclamation: <a href="https://mpz-chess-ui.onrender.com">Live demo :fire:</a>
 
-![alt text](https://github.com/maxmyk/mpz-chess/blob/main/public/gameplay.png?raw=true)
+![alt text](https://github.com/maxmyk/mpz-chess/blob/master/public/gameplay.png?raw=true)
 
 It's a simple chess WEB app with:
 * singleplayer with adaptive bot
