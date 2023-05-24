@@ -49,27 +49,29 @@ class HumanVsHuman extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { fen, prevFEN, history } = this.state;
-
-    // if (this.state.localBool) {
-    //   socket.emit("get_move", { room: this.props.room_id });
-    //   this.setState({ localBool: false });
-    // }
+    const { fen, prevFEN, history, gameEnded } = this.state;
+  
     if (fen !== "start" && fen !== prevFEN) {
       this.setState({ prevFEN: fen });
       socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
     }
-
+  
     const lastMove = history[history.length - 1];
-    if (this.game.in_checkmate()) {
-      this.game.reset();
-      let winner = lastMove.color === "b" ? "Black" : "White";
+    if (this.game.in_checkmate() && !gameEnded) {
+      let winner = lastMove.color === "b" ? "black" : "white";
+      socket.emit("get_stats", { room: this.props.room_id, message: winner });
       alert("Game over, " + winner + " wins!");
-    } else if (this.game.in_draw()) {
-      this.game.reset();
+      this.game = new Chess();
+      this.setState({ gameEnded: true });
+    } else if (this.game.in_draw() && !gameEnded) {
+      socket.emit("get_stats", { room: this.props.room_id, message: "draw" });
       alert("Game over, DRAW!");
+      this.game = new Chess();
+      this.setState({ gameEnded: true });
     }
   }
+  
+  
 
   setPlayer = (player) => {
     this.setState({ player });
@@ -199,7 +201,7 @@ class HumanVsHuman extends Component {
       return;
     }
     this.addChatMessage(`${player}: ${newMessage}`);
-    socket.emit("send_message", { room:room_id, message });
+    socket.emit("send_message", { room: room_id, message });
     this.setState({ newMessage: "" });
   };
 
@@ -213,16 +215,16 @@ class HumanVsHuman extends Component {
     const { fen, dropSquareStyle, squareStyles, player, chatMessages, newMessage } = this.state;
     return (
       <div class="centred_pvp">
-        <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black" , color : player === "black"  ? "white" : "black" }}>
+        <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black", color: player === "black" ? "white" : "black" }}>
           <div class="chatbox">
             {chatMessages.map((message, index) => (
               <p key={index}>{message}</p>
             ))}
           </div>
           <form onSubmit={this.handleSendMessage}>
-          <input type="text" value={newMessage} onChange={this.handleInputChange} />
-          <button type="submit">Send</button>
-        </form>
+            <input type="text" value={newMessage} onChange={this.handleInputChange} />
+            <button type="submit">Send</button>
+          </form>
         </div>
         <Chessboard
           width={600}
