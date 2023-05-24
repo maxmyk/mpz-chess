@@ -2,7 +2,7 @@ import React, { Component, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
-const socket = require('../integrations/socket').socket;
+const socket = require('./socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
 class HumanVsHuman extends Component {
@@ -266,7 +266,7 @@ const squareStyling = ({ pieceSquare, history }) => {
   };
 };
 
-export default function WithMoveValidation({ room_id }) {
+export default function MultiplayerWithMoveValidation({ room_id }) {
   const [player, setPlayer] = useState("white");
 
   useEffect(() => {

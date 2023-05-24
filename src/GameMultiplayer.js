@@ -1,6 +1,5 @@
-import "./App.css";
 import React, { useEffect, useState } from "react";
-import WithMoveValidation from "./integrations/validator";
+import MultiplayerWithMoveValidation from "./integrations/multiplayerGame";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const GameMultiplayer = () => {
@@ -34,11 +33,10 @@ const GameMultiplayer = () => {
         <a href={window.location.href}>{window.location.href}</a>
       </div>
       <div class="boardsContainer">
-        <WithMoveValidation room_id={room_id} />
+        <MultiplayerWithMoveValidation room_id={room_id} />
       </div>
     </div>
   );
 };
-
 
 export default GameMultiplayer;
