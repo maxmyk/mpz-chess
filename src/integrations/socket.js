@@ -1,5 +1,5 @@
 import io from 'socket.io-client'
-const URL = 'https://mpz-chess-server.onrender.com'
+const URL = 'http://localhost:3001'
 const socket = io(URL)
 export {
     socket

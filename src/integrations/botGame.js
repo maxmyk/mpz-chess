@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
 import axios from "axios";
-
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 const lichessApi = 'lip_8mesw2BXarmzrgqlt5DD';
 
@@ -30,7 +29,7 @@ async function getBestMove(position) {
         });
 }
 
-class HumanVsHuman extends Component {
+class Singleplayer extends Component {
     static propTypes = { children: PropTypes.func };
     state = {
         fen: "start",
@@ -44,47 +43,30 @@ class HumanVsHuman extends Component {
         this.game = new Chess();
     }
     componentDidUpdate(prevProps, prevState) {
-        const { fen, prevFEN, history } = this.state;
-        const lastMove = history[history.length - 1];
-        if (this.game.in_checkmate()) {
-            this.game.reset();
-            let winner = lastMove.color === "b" ? "Black" : "White";
-            alert("Game over, " + winner + " wins!");
-        } else if (this.game.in_draw()) {
-            this.game.reset();
-            alert("Game over, DRAW!");
+        const { history } = this.state;
+        const { history: prevHistory } = prevState;
+        
+        if (history.length !== prevHistory.length) {
+          const lastMove = history[history.length - 1];
+          
+          if (this.game.in_checkmate()) {
+            this.handleGameOver(lastMove);
+          } else if (this.game.in_draw()) {
+            this.handleDraw();
+          }
         }
-    }
-    removeHighlightSquare = () => {
-        this.setState(({ pieceSquare, history }) => ({
-            squareStyles: squareStyling({ pieceSquare, history })
-        }));
-    };
-    highlightSquare = (sourceSquare, squaresToHighlight) => {
-        const highlightStyles = [sourceSquare, ...squaresToHighlight].reduce(
-            (a, c) => {
-                return {
-                    ...a,
-                    ...{
-                        [c]: {
-                            background:
-                                "radial-gradient(circle, #fffc00 36%, transparent 40%)",
-                            borderRadius: "50%"
-                        }
-                    },
-                    ...squareStyling({
-                        history: this.state.history,
-                        pieceSquare: this.state.pieceSquare
-                    })
-                };
-            },
-            {}
-        );
-
-        this.setState(({ squareStyles }) => ({
-            squareStyles: { ...squareStyles, ...highlightStyles }
-        }));
-    };
+      }
+      
+      handleGameOver = (lastMove) => {
+        const winner = lastMove.color === "b" ? "Black" : "White";
+        this.game.reset();
+        alert(`Game over, ${winner} wins!`);
+      }
+      
+      handleDraw = () => {
+        this.game.reset();
+        alert("Game over, DRAW!");
+      }
 
     makeMoveOnBoard = (move) => {
         const { source, target, promotion } = move;
@@ -131,27 +113,38 @@ class HumanVsHuman extends Component {
     };
 
     onMouseOverSquare = square => {
-        let moves = this.game.moves({
-            square: square,
+        const moves = this.game.moves({
+            square,
             verbose: true
         });
+
         if (moves.length === 0) return;
-        let squaresToHighlight = [];
-        for (var i = 0; i < moves.length; i++) {
-            squaresToHighlight.push(moves[i].to);
-        }
-        this.highlightSquare(square, squaresToHighlight);
+        const squaresToHighlight = moves.map(move => move.to);
+        this.setState(({ pieceSquare, history }) => {
+            const highlightedSquares = squaresToHighlight.reduce(
+                (acc, curr) => ({
+                    ...acc,
+                    [curr]: {
+                        background: "#ffff00ff",
+                        borderRadius: "100%"
+                    }
+                }),
+                {}
+            );
+
+            return {
+                squareStyles: {
+                    ...squareStyling({ pieceSquare, history }),
+                    ...highlightedSquares
+                }
+            };
+        });
     };
 
-    onMouseOutSquare = square => this.removeHighlightSquare(square);
-
-    onDragOverSquare = square => {
-        this.setState({
-            dropSquareStyle:
-                square === "e4" || square === "d4" || square === "e5" || square === "d5"
-                    ? { backgroundColor: "cornFlowerBlue" }
-                    : { boxShadow: "inset 0 0 1px 4px rgb(255, 255, 0)" }
-        });
+    onMouseOutSquare = () => {
+        this.setState(({ pieceSquare, history }) => ({
+            squareStyles: squareStyling({ pieceSquare, history })
+        }));
     };
 
     onSquareClick = async (square) => {
@@ -189,18 +182,6 @@ class HumanVsHuman extends Component {
         }
     };
 
-    onSquareRightClick = square => {
-        if (this.game.game_over()) {
-            this.setState({
-                squareStyles: { [square]: { backgroundColor: "lime" } }
-            });
-        } else {
-            this.setState({
-                squareStyles: { [square]: { backgroundColor: "deepPink" } }
-            });
-        }
-    };
-
     render() {
         const { fen, dropSquareStyle, squareStyles } = this.state;
         return this.props.children({
@@ -210,17 +191,16 @@ class HumanVsHuman extends Component {
             onMouseOutSquare: this.onMouseOutSquare,
             onDrop: this.onDrop,
             dropSquareStyle,
-            onDragOverSquare: this.onDragOverSquare,
             onSquareClick: this.onSquareClick,
             onSquareRightClick: this.onSquareRightClick
         });
     }
 }
 
-export default function WithMoveValidation() {
+export default function SingleplayerWithMoveValidation() {
     return (
         <div className="centred_pvp">
-            <HumanVsHuman>
+            <Singleplayer>
                 {({
                     position,
                     onDrop,
@@ -228,48 +208,34 @@ export default function WithMoveValidation() {
                     onMouseOutSquare,
                     squareStyles,
                     dropSquareStyle,
-                    onDragOverSquare,
                     onSquareClick,
                     onSquareRightClick
                 }) => (
                     <Chessboard
-                        id="humanVsHuman"
+                        id="humanVsBot"
                         width={600}
                         position={position}
                         onDrop={onDrop}
                         onMouseOverSquare={onMouseOverSquare}
                         onMouseOutSquare={onMouseOutSquare}
-                        boardStyle={{
-                            borderRadius: "5px",
-                            boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`
-                        }}
                         squareStyles={squareStyles}
                         dropSquareStyle={dropSquareStyle}
-                        onDragOverSquare={onDragOverSquare}
                         onSquareClick={onSquareClick}
                         onSquareRightClick={onSquareRightClick}
                     />
                 )}
-            </HumanVsHuman>
+            </Singleplayer>
         </div>
     );
 }
 
 const squareStyling = ({ pieceSquare, history }) => {
-    const sourceSquare = history.length && history[history.length - 1].from;
-    const targetSquare = history.length && history[history.length - 1].to;
-
+    const { from, to } = history[history.length - 1] || {};
+    const backgroundColor = "#ff000033";
+  
     return {
-        [pieceSquare]: { backgroundColor: "rgba(255, 255, 0, 0.4)" },
-        ...(history.length && {
-            [sourceSquare]: {
-                backgroundColor: "rgba(255, 255, 0, 0.4)"
-            }
-        }),
-        ...(history.length && {
-            [targetSquare]: {
-                backgroundColor: "rgba(255, 255, 0, 0.4)"
-            }
-        })
+      [pieceSquare]: { backgroundColor },
+      ...(from && { [from]: { backgroundColor } }),
+      ...(to && { [to]: { backgroundColor } })
     };
-};
+  };

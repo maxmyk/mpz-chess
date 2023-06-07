@@ -5,7 +5,7 @@ import * as ChessJS from "chess.js";
 const socket = require('./socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
-class HumanVsHuman extends Component {
+class Multiplayer extends Component {
   static propTypes = {
     room_id: PropTypes.string.isRequired
   };
@@ -19,8 +19,7 @@ class HumanVsHuman extends Component {
     prevFEN: "",
     player: "",
     chatMessages: [],
-    newMessage: "",
-    // localBool: true
+    newMessage: ""
   };
 
   componentDidMount() {
@@ -48,14 +47,14 @@ class HumanVsHuman extends Component {
     });
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate() {
     const { fen, prevFEN, history, gameEnded } = this.state;
-  
+
     if (fen !== "start" && fen !== prevFEN) {
       this.setState({ prevFEN: fen });
       socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
     }
-  
+
     const lastMove = history[history.length - 1];
     if (this.game.in_checkmate() && !gameEnded) {
       let winner = lastMove.color === "b" ? "black" : "white";
@@ -70,8 +69,8 @@ class HumanVsHuman extends Component {
       this.setState({ gameEnded: true });
     }
   }
-  
-  
+
+
 
   setPlayer = (player) => {
     this.setState({ player });
@@ -87,54 +86,55 @@ class HumanVsHuman extends Component {
   };
 
   onDrop = ({ sourceSquare, targetSquare }) => {
-    const { player } = this.state;
+    const { player, pieceSquare, history } = this.state;
     const piece = this.game.get(sourceSquare);
     const myPlayer = player === "white" ? "w" : "b";
     if (piece && piece.color !== myPlayer) {
       return;
-    } else {
-      const move = this.game.move({
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: "q"
-      });
-
-      if (move === null) return;
-
-      this.setState(({ pieceSquare, history }) => ({
-        fen: this.game.fen(),
-        history: this.game.history({ verbose: true }),
-        squareStyles: squareStyling({ pieceSquare, history })
-      }));
     }
+    const move = this.game.move({
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: "q"
+    });
+    if (move === null)
+      return;
+    this.setState({
+      fen: this.game.fen(),
+      history: this.game.history({ verbose: true }),
+      squareStyles: squareStyling({ pieceSquare, history })
+    });
   };
 
   onMouseOverSquare = square => {
-    let moves = this.game.moves({
-      square: square,
+    const moves = this.game.moves({
+      square,
       verbose: true
     });
 
     if (moves.length === 0) return;
+    const squaresToHighlight = moves.map(move => move.to);
+    this.setState(({ pieceSquare, history }) => {
+      const highlightedSquares = squaresToHighlight.reduce(
+        (acc, curr) => ({
+          ...acc,
+          [curr]: {
+            background: "#ffff00ff",
+            borderRadius: "100%"
+          }
+        }),
+        {}
+      );
 
-    let squaresToHighlight = moves.map(move => move.to);
-
-    this.setState(({ pieceSquare, history }) => ({
-      squareStyles: {
-        ...squareStyling({ pieceSquare, history }),
-        ...squaresToHighlight.reduce(
-          (acc, curr) => ({
-            ...acc,
-            [curr]: {
-              background: "radial-gradient(circle, #fffc00 36%, transparent 40%)",
-              borderRadius: "50%"
-            }
-          }),
-          {}
-        )
-      }
-    }));
+      return {
+        squareStyles: {
+          ...squareStyling({ pieceSquare, history }),
+          ...highlightedSquares
+        }
+      };
+    });
   };
+
 
   onMouseOutSquare = () => {
     this.setState(({ pieceSquare, history }) => ({
@@ -146,42 +146,27 @@ class HumanVsHuman extends Component {
     const { player, pieceSquare, history } = this.state;
     const piece = this.game.get(square);
     const myPlayer = player === "white" ? "w" : "b";
+
     if (piece && piece.color !== myPlayer) {
       return;
     }
+    const newState = {};
     if (pieceSquare) {
       const move = this.game.move({
         from: pieceSquare,
         to: square,
         promotion: "q"
       });
-
-      if (move === null) return;
-
-      this.setState(prevState => ({
-        fen: this.game.fen(),
-        history: this.game.history({ verbose: true }),
-        pieceSquare: "",
-        squareStyles: squareStyling({ pieceSquare: "", history: prevState.history })
-      }));
+      if (move === null)
+        return;
+      newState.history = this.game.history({ verbose: true });
+      newState.pieceSquare = "";
     } else {
-      this.setState({
-        pieceSquare: square,
-        squareStyles: squareStyling({ pieceSquare: square, history })
-      });
+      newState.pieceSquare = square;
     }
-  };
-
-  onSquareRightClick = square => {
-    if (this.game.game_over()) {
-      this.setState({
-        squareStyles: { [square]: { backgroundColor: "lime" } }
-      });
-    } else {
-      this.setState({
-        squareStyles: { [square]: { backgroundColor: "deepPink" } }
-      });
-    }
+    newState.fen = this.game.fen();
+    newState.squareStyles = squareStyling({ pieceSquare: newState.pieceSquare, history });
+    this.setState(newState);
   };
 
   handleInputChange = event => {
@@ -232,10 +217,6 @@ class HumanVsHuman extends Component {
           onDrop={this.onDrop}
           onMouseOverSquare={this.onMouseOverSquare}
           onMouseOutSquare={this.onMouseOutSquare}
-          boardStyle={{
-            borderRadius: "5px",
-            boxShadow: `0 5px 15px rgba(0, 0, 0, 0.5)`
-          }}
           squareStyles={squareStyles}
           dropSquareStyle={dropSquareStyle}
           onSquareClick={this.onSquareClick}
@@ -248,27 +229,19 @@ class HumanVsHuman extends Component {
 }
 
 const squareStyling = ({ pieceSquare, history }) => {
-  const sourceSquare = history.length && history[history.length - 1].from;
-  const targetSquare = history.length && history[history.length - 1].to;
+  const { from, to } = history[history.length - 1] || {};
+  const backgroundColor = "#ff000033";
 
   return {
-    [pieceSquare]: { backgroundColor: "rgba(255, 255, 0, 0.4)" },
-    ...(history.length && {
-      [sourceSquare]: {
-        backgroundColor: "rgba(255, 255, 0, 0.4)"
-      }
-    }),
-    ...(history.length && {
-      [targetSquare]: {
-        backgroundColor: "rgba(255, 255, 0, 0.4)"
-      }
-    })
+    [pieceSquare]: { backgroundColor },
+    ...(from && { [from]: { backgroundColor } }),
+    ...(to && { [to]: { backgroundColor } })
   };
 };
 
-export default function MultiplayerWithMoveValidation({ room_id }) {
-  const [player, setPlayer] = useState("white");
 
+export default function MultiplayerWithMoveValidation({ room_id }) {
+  const [, setPlayer] = useState("white");
   useEffect(() => {
     socket.on("receive_side", (data) => {
       setPlayer(data.message);
@@ -277,7 +250,8 @@ export default function MultiplayerWithMoveValidation({ room_id }) {
 
   return (
     <div>
-      <HumanVsHuman room_id={room_id} />
+      <Multiplayer room_id={room_id} />
     </div>
   );
 }
+
