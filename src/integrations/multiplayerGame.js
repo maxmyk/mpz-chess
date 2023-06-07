@@ -1,120 +1,114 @@
-import React, { Component, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
 const socket = require('./socket').socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
-class Multiplayer extends Component {
-  static propTypes = {
-    room_id: PropTypes.string.isRequired
-  };
+const Multiplayer = ({ room_id }) => {
+  const [fen, setFen] = useState('start');
+  const [dropSquareStyle, setDropSquareStyle] = useState({});
+  const [squareStyles, setSquareStyles] = useState({});
+  const [pieceSquare, setPieceSquare] = useState('');
+  const [history, setHistory] = useState([]);
+  const [prevFEN, setPrevFEN] = useState('');
+  const [player, setPlayer] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [game, setGame] = useState(null);
+  const [gameEnded, setGameEnded] = useState(false);
 
-  state = {
-    fen: "start",
-    dropSquareStyle: {},
-    squareStyles: {},
-    pieceSquare: "",
-    history: [],
-    prevFEN: "",
-    player: "",
-    chatMessages: [],
-    newMessage: ""
-  };
-
-  componentDidMount() {
-    const { room_id } = this.props;
-    if (!this.game) {
-      this.game = new Chess();
-      socket.emit("join_room", room_id);
-      socket.on("room_full", (data) => {
-        alert("Room is full. Redirecting to home page.");
-        window.location.href = "/";
-      });
+  useEffect(() => {
+    if (!game) {
+      setGame(new Chess());
     }
 
-    socket.on("receive_move", (data) => {
-      this.setChessState(data);
+    socket.emit('join_room', room_id);
+
+    socket.on('room_full', (data) => {
+      alert('Room is full. Redirecting to home page.');
+      window.location.href = '/';
     });
 
-    socket.on("receive_side", (data) => {
-      this.setPlayer(data.message);
+    socket.on('receive_move', (data) => {
+      setChessState(data);
     });
 
-    socket.on("receive_message", (data) => {
+    socket.on('receive_side', (data) => {
+      setPlayer(data.message);
+    });
+
+    socket.on('receive_message', (data) => {
       const { player, message } = data;
-      this.addChatMessage(`${player}: ${message}`);
+      addChatMessage(`${player}: ${message}`);
     });
-  }
 
-  componentDidUpdate() {
-    const { fen, prevFEN, history, gameEnded } = this.state;
+    return () => {
+      socket.off('room_full');
+      socket.off('receive_move');
+      socket.off('receive_side');
+      socket.off('receive_message');
+    };
+  }, []);
 
-    if (fen !== "start" && fen !== prevFEN) {
-      this.setState({ prevFEN: fen });
-      socket.emit("send_move", { room: this.props.room_id, currentState: this.state });
+  useEffect(() => {
+    if (fen !== 'start' && fen !== prevFEN) {
+      setPrevFEN(fen);
+      socket.emit('send_move', { room: room_id, currentState: { fen, history, squareStyles } });
     }
 
-    const lastMove = history[history.length - 1];
-    if (this.game.in_checkmate() && !gameEnded) {
-      let winner = lastMove.color === "b" ? "black" : "white";
-      socket.emit("get_stats", { room: this.props.room_id, message: winner });
-      alert("Game over, " + winner + " wins!");
-      this.game = new Chess();
-      this.setState({ gameEnded: true });
-    } else if (this.game.in_draw() && !gameEnded) {
-      socket.emit("get_stats", { room: this.props.room_id, message: "draw" });
-      alert("Game over, DRAW!");
-      this.game = new Chess();
-      this.setState({ gameEnded: true });
+    // const lastMove = history[history.length - 1];
+    const lastMove = getLastMoveFromFEN(fen)
+    if (game && game.in_checkmate() && !gameEnded) {
+      console.log(lastMove)
+      let winner = lastMove.color === 'b' ? 'black' : 'white';
+      socket.emit('get_stats', { room: room_id, message: winner });
+      alert('Game over, ' + winner + ' wins!');
+      setGame(new Chess());
+      setGameEnded(true);
+    } else if (game && game.in_draw() && !gameEnded) {
+      socket.emit('get_stats', { room: room_id, message: 'draw' });
+      alert('Game over, DRAW!');
+      setGame(new Chess());
+      setGameEnded(true);
     }
-  }
+  }, [fen, prevFEN, history, game, gameEnded]);
 
-
-
-  setPlayer = (player) => {
-    this.setState({ player });
-  };
-
-  setChessState = (data) => {
-    this.setState({
-      fen: data.currentState.fen,
-      history: data.currentState.history,
-      squareStyles: data.currentState.squareStyles
+  const setChessState = (data) => {
+    setFen(data.currentState.fen);
+    console.log(data)
+    setSquareStyles(data.currentState.squareStyles);
+    setGame((prevGame) => {
+      prevGame.load(data.currentState.fen);
+      return prevGame;
     });
-    this.game.load(data.currentState.fen);
   };
 
-  onDrop = ({ sourceSquare, targetSquare }) => {
-    const { player, pieceSquare, history } = this.state;
-    const piece = this.game.get(sourceSquare);
+  const onDrop = ({ sourceSquare, targetSquare }) => {
     const myPlayer = player === "white" ? "w" : "b";
+    const piece = game.get(sourceSquare);
     if (piece && piece.color !== myPlayer) {
       return;
     }
-    const move = this.game.move({
+    const move = game.move({
       from: sourceSquare,
       to: targetSquare,
       promotion: "q"
     });
-    if (move === null)
-      return;
-    this.setState({
-      fen: this.game.fen(),
-      history: this.game.history({ verbose: true }),
-      squareStyles: squareStyling({ pieceSquare, history })
-    });
+    if (move === null) return;
+    setFen(game.fen());
+    setHistory(game.history({ verbose: true }));
+    setSquareStyles(squareStyling({ pieceSquare, history }));
   };
 
-  onMouseOverSquare = square => {
-    const moves = this.game.moves({
+  const onMouseOverSquare = (square) => {
+    const moves = game.moves({
       square,
       verbose: true
     });
-
     if (moves.length === 0) return;
     const squaresToHighlight = moves.map(move => move.to);
-    this.setState(({ pieceSquare, history }) => {
+    setSquareStyles(({ pieceSquare, history }) => {
       const highlightedSquares = squaresToHighlight.reduce(
         (acc, curr) => ({
           ...acc,
@@ -125,127 +119,123 @@ class Multiplayer extends Component {
         }),
         {}
       );
-
       return {
-        squareStyles: {
-          ...squareStyling({ pieceSquare, history }),
-          ...highlightedSquares
-        }
+        ...squareStyling({ pieceSquare, history }),
+        ...highlightedSquares
       };
     });
   };
 
-
-  onMouseOutSquare = () => {
-    this.setState(({ pieceSquare, history }) => ({
-      squareStyles: squareStyling({ pieceSquare, history })
+  const onMouseOutSquare = () => {
+    setSquareStyles(({ pieceSquare, history }) => ({
+      ...squareStyling({ pieceSquare, history })
     }));
   };
 
-  onSquareClick = square => {
-    const { player, pieceSquare, history } = this.state;
-    const piece = this.game.get(square);
+  const onSquareClick = (square) => {
     const myPlayer = player === "white" ? "w" : "b";
-
+    const piece = game.get(square);
     if (piece && piece.color !== myPlayer) {
       return;
     }
-    const newState = {};
     if (pieceSquare) {
-      const move = this.game.move({
+      const move = game.move({
         from: pieceSquare,
         to: square,
         promotion: "q"
       });
-      if (move === null)
-        return;
-      newState.history = this.game.history({ verbose: true });
-      newState.pieceSquare = "";
+      if (move === null) return;
+      setHistory(game.history({ verbose: true }));
+      setPieceSquare("");
     } else {
-      newState.pieceSquare = square;
+      setPieceSquare(square);
     }
-    newState.fen = this.game.fen();
-    newState.squareStyles = squareStyling({ pieceSquare: newState.pieceSquare, history });
-    this.setState(newState);
+    setFen(game.fen());
+    setSquareStyles(squareStyling({ pieceSquare, history }));
   };
 
-  handleInputChange = event => {
-    this.setState({ newMessage: event.target.value });
+  const handleInputChange = (event) => {
+    setNewMessage(event.target.value);
   };
 
-  handleSendMessage = event => {
+  const handleSendMessage = (event) => {
     event.preventDefault();
-    const { player, newMessage } = this.state;
-    const { room_id } = this.props;
     const message = {
       player: player,
       message: newMessage
     };
-    // if stripped message is empty, don't send
     if (!newMessage.replace(/\s/g, "").length) {
       return;
     }
-    this.addChatMessage(`${player}: ${newMessage}`);
+    addChatMessage(`${player}: ${newMessage}`);
     socket.emit("send_message", { room: room_id, message });
-    this.setState({ newMessage: "" });
+    setNewMessage("");
   };
 
-  addChatMessage = message => {
-    this.setState(prevState => ({
-      chatMessages: [...prevState.chatMessages, message]
-    }));
+  const addChatMessage = (message) => {
+    setChatMessages(prevState => [...prevState, message]);
+  };
+  const squareStyling = ({ pieceSquare, history }) => {
+    const { from, to } = (history && history.length > 0 && history[history.length - 1]) || {};
+    const backgroundColor = "#ff0000";
+    const isMove = pieceSquare === from || pieceSquare === to;
+    if (isMove) {
+      return { backgroundColor };
+    }
+    return {};
   };
 
-  render() {
-    const { fen, dropSquareStyle, squareStyles, player, chatMessages, newMessage } = this.state;
-    return (
-      <div class="centred_pvp">
-        <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black", color: player === "black" ? "white" : "black" }}>
-          <div class="chatbox">
-            {chatMessages.map((message, index) => (
-              <p key={index}>{message}</p>
-            ))}
-          </div>
-          <form onSubmit={this.handleSendMessage}>
-            <input type="text" value={newMessage} onChange={this.handleInputChange} />
-            <button type="submit">Send</button>
-          </form>
-        </div>
-        <Chessboard
-          width={600}
-          position={fen}
-          onDrop={this.onDrop}
-          onMouseOverSquare={this.onMouseOverSquare}
-          onMouseOutSquare={this.onMouseOutSquare}
-          squareStyles={squareStyles}
-          dropSquareStyle={dropSquareStyle}
-          onSquareClick={this.onSquareClick}
-          onSquareRightClick={this.onSquareRightClick}
-          orientation={player}
-        />
-      </div>
-    );
+  function getLastMoveFromFEN(fen) {
+    const fenParts = fen.split(" ");
+    const moveInfo = fenParts[fenParts.length - 1]; // Retrieve the move-related information
+    const moveParts = moveInfo.split(" ");
+    const lastMove = moveParts[moveParts.length - 1]; // Extract the last move
+  
+    return lastMove;
   }
-}
+  
 
-const squareStyling = ({ pieceSquare, history }) => {
-  const { from, to } = history[history.length - 1] || {};
-  const backgroundColor = "#ff000033";
-
-  return {
-    [pieceSquare]: { backgroundColor },
-    ...(from && { [from]: { backgroundColor } }),
-    ...(to && { [to]: { backgroundColor } })
-  };
+  return (
+    <div class="centred_pvp">
+      <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black", color: player === "black" ? "white" : "black" }}>
+        <div class="chatbox">
+          {chatMessages.map((message, index) => (
+            <p key={index}>{message}</p>
+          ))}
+        </div>
+        <form onSubmit={handleSendMessage}>
+          <input type="text" value={newMessage} onChange={handleInputChange} />
+          <button type="submit">Send</button>
+        </form>
+      </div>
+      <Chessboard
+        width={600}
+        position={fen}
+        onDrop={onDrop}
+        onMouseOverSquare={onMouseOverSquare}
+        onMouseOutSquare={onMouseOutSquare}
+        squareStyles={squareStyles}
+        dropSquareStyle={dropSquareStyle}
+        onSquareClick={onSquareClick}
+        orientation={player}
+      />
+    </div>
+  );
 };
 
+Multiplayer.propTypes = {
+  room_id: PropTypes.string.isRequired
+};
 
-export default function MultiplayerWithMoveValidation({ room_id }) {
+const MultiplayerWithMoveValidation = ({ room_id }) => {
   const [, setPlayer] = useState("white");
   useEffect(() => {
     socket.on("receive_side", (data) => {
       setPlayer(data.message);
     });
+    return () => {
+      socket.off("receive_side");
+    };
   }, []);
 
   return (
@@ -253,5 +243,6 @@ export default function MultiplayerWithMoveValidation({ room_id }) {
       <Multiplayer room_id={room_id} />
     </div>
   );
-}
+};
 
+export default MultiplayerWithMoveValidation;
