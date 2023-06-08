@@ -2,19 +2,19 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Chessboard from "chessboardjsx";
 import * as ChessJS from "chess.js";
-const socket = require('./socket').socket;
+const socket = require("./socket").socket;
 const Chess = typeof ChessJS === "function" ? ChessJS : ChessJS.Chess;
 
 const Multiplayer = ({ room_id }) => {
-  const [fen, setFen] = useState('start');
+  const [fen, setFen] = useState("start");
   const [dropSquareStyle, setDropSquareStyle] = useState({});
   const [squareStyles, setSquareStyles] = useState({});
-  const [pieceSquare, setPieceSquare] = useState('');
+  const [pieceSquare, setPieceSquare] = useState("");
   const [history, setHistory] = useState([]);
-  const [prevFEN, setPrevFEN] = useState('');
-  const [player, setPlayer] = useState('');
+  const [prevFEN, setPrevFEN] = useState("");
+  const [player, setPlayer] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState("");
   const [game, setGame] = useState(null);
   const [gameEnded, setGameEnded] = useState(false);
 
@@ -23,52 +23,54 @@ const Multiplayer = ({ room_id }) => {
       setGame(new Chess());
     }
 
-    socket.emit('join_room', room_id);
+    socket.emit("join_room", room_id);
 
-    socket.on('room_full', (data) => {
-      alert('Room is full. Redirecting to home page.');
-      window.location.href = '/';
+    socket.on("room_full", (data) => {
+      alert("Room is full. Redirecting to home page.");
+      window.location.href = "/";
     });
 
-    socket.on('receive_move', (data) => {
+    socket.on("receive_move", (data) => {
       setChessState(data);
     });
 
-    socket.on('receive_side', (data) => {
+    socket.on("receive_side", (data) => {
       setPlayer(data.message);
     });
 
-    socket.on('receive_message', (data) => {
+    socket.on("receive_message", (data) => {
       const { player, message } = data;
       addChatMessage(`${player}: ${message}`);
     });
 
     return () => {
-      socket.off('room_full');
-      socket.off('receive_move');
-      socket.off('receive_side');
-      socket.off('receive_message');
+      socket.off("room_full");
+      socket.off("receive_move");
+      socket.off("receive_side");
+      socket.off("receive_message");
     };
   }, []);
 
   useEffect(() => {
-    if (fen !== 'start' && fen !== prevFEN) {
+    if (fen !== "start" && fen !== prevFEN) {
       setPrevFEN(fen);
-      socket.emit('send_move', { room: room_id, currentState: { fen, history, squareStyles } });
+      socket.emit("send_move", {
+        room: room_id,
+        currentState: { fen, history, squareStyles },
+      });
     }
 
-    // const lastMove = history[history.length - 1];
-    const lastMove = getLastMoveFromFEN(fen)
+    const lastMove = getLastMoveFromFEN(fen);
     if (game && game.in_checkmate() && !gameEnded) {
-      console.log(lastMove)
-      let winner = lastMove.color === 'b' ? 'black' : 'white';
-      socket.emit('get_stats', { room: room_id, message: winner });
-      alert('Game over, ' + winner + ' wins!');
+      console.log(lastMove);
+      let winner = lastMove.color === "b" ? "black" : "white";
+      socket.emit("get_stats", { room: room_id, message: winner });
+      alert("Game over, " + winner + " wins!");
       setGame(new Chess());
       setGameEnded(true);
     } else if (game && game.in_draw() && !gameEnded) {
-      socket.emit('get_stats', { room: room_id, message: 'draw' });
-      alert('Game over, DRAW!');
+      socket.emit("get_stats", { room: room_id, message: "draw" });
+      alert("Game over, DRAW!");
       setGame(new Chess());
       setGameEnded(true);
     }
@@ -76,7 +78,7 @@ const Multiplayer = ({ room_id }) => {
 
   const setChessState = (data) => {
     setFen(data.currentState.fen);
-    console.log(data)
+    console.log(data);
     setSquareStyles(data.currentState.squareStyles);
     setGame((prevGame) => {
       prevGame.load(data.currentState.fen);
@@ -93,7 +95,7 @@ const Multiplayer = ({ room_id }) => {
     const move = game.move({
       from: sourceSquare,
       to: targetSquare,
-      promotion: "q"
+      promotion: "q",
     });
     if (move === null) return;
     setFen(game.fen());
@@ -104,31 +106,31 @@ const Multiplayer = ({ room_id }) => {
   const onMouseOverSquare = (square) => {
     const moves = game.moves({
       square,
-      verbose: true
+      verbose: true,
     });
     if (moves.length === 0) return;
-    const squaresToHighlight = moves.map(move => move.to);
+    const squaresToHighlight = moves.map((move) => move.to);
     setSquareStyles(({ pieceSquare, history }) => {
       const highlightedSquares = squaresToHighlight.reduce(
         (acc, curr) => ({
           ...acc,
           [curr]: {
             background: "#ffff00ff",
-            borderRadius: "100%"
-          }
+            borderRadius: "100%",
+          },
         }),
         {}
       );
       return {
         ...squareStyling({ pieceSquare, history }),
-        ...highlightedSquares
+        ...highlightedSquares,
       };
     });
   };
 
   const onMouseOutSquare = () => {
     setSquareStyles(({ pieceSquare, history }) => ({
-      ...squareStyling({ pieceSquare, history })
+      ...squareStyling({ pieceSquare, history }),
     }));
   };
 
@@ -142,7 +144,7 @@ const Multiplayer = ({ room_id }) => {
       const move = game.move({
         from: pieceSquare,
         to: square,
-        promotion: "q"
+        promotion: "q",
       });
       if (move === null) return;
       setHistory(game.history({ verbose: true }));
@@ -162,7 +164,7 @@ const Multiplayer = ({ room_id }) => {
     event.preventDefault();
     const message = {
       player: player,
-      message: newMessage
+      message: newMessage,
     };
     if (!newMessage.replace(/\s/g, "").length) {
       return;
@@ -173,10 +175,11 @@ const Multiplayer = ({ room_id }) => {
   };
 
   const addChatMessage = (message) => {
-    setChatMessages(prevState => [...prevState, message]);
+    setChatMessages((prevState) => [...prevState, message]);
   };
   const squareStyling = ({ pieceSquare, history }) => {
-    const { from, to } = (history && history.length > 0 && history[history.length - 1]) || {};
+    const { from, to } =
+      (history && history.length > 0 && history[history.length - 1]) || {};
     const backgroundColor = "#ff0000";
     const isMove = pieceSquare === from || pieceSquare === to;
     if (isMove) {
@@ -190,14 +193,19 @@ const Multiplayer = ({ room_id }) => {
     const moveInfo = fenParts[fenParts.length - 1]; // Retrieve the move-related information
     const moveParts = moveInfo.split(" ");
     const lastMove = moveParts[moveParts.length - 1]; // Extract the last move
-  
+
     return lastMove;
   }
-  
 
   return (
     <div class="centred_pvp">
-      <div class="half" style={{ backgroundColor: player === "white" ? "white" : "black", color: player === "black" ? "white" : "black" }}>
+      <div
+        class="half"
+        style={{
+          backgroundColor: player === "white" ? "white" : "black",
+          color: player === "black" ? "white" : "black",
+        }}
+      >
         <div class="chatbox">
           {chatMessages.map((message, index) => (
             <p key={index}>{message}</p>
@@ -224,7 +232,7 @@ const Multiplayer = ({ room_id }) => {
 };
 
 Multiplayer.propTypes = {
-  room_id: PropTypes.string.isRequired
+  room_id: PropTypes.string.isRequired,
 };
 
 const MultiplayerWithMoveValidation = ({ room_id }) => {
